@@ -550,6 +550,14 @@ impl Presence {
                 return Ok(());
             }
         };
+
+        // START Dar-Krusos
+        let title = metadata.title().map(|title| title.to_string()).unwrap_or_else(|| "Unknown Title".into());
+        if title.to_lowercase().contains("asmr") {
+            return Ok(());
+        }
+        // END Dar-Krusos
+
         let update_snapshot = UpdateSnapshot::from_mpris(playback_status.clone(), &metadata);
         trace!("Metadata: {:?}", metadata);
 
@@ -789,7 +797,47 @@ impl Presence {
 
         let mut assets = Assets::default();
 
-        if let Some(img_url) = &cover_art_url {
+        // START Dar-Krusos
+        let title = metadata.title().map(|title| title.to_string()).unwrap_or_else(|| "Unknown Title".into());
+
+        let url = metadata.url().map(|url| url.to_string()).unwrap();
+        let decoded = url.replace("%20", " ");
+        let (series, episode) = decoded
+            .rsplit('/')
+            .next()
+            .and_then(|s| s.strip_suffix(".mkv"))
+            .and_then(|filename| {
+                filename.find(" S").map(|pos| {
+                    (&filename[..pos], &filename[pos + 1..])
+                })
+            }).unwrap_or_default();
+        let found = decoded.
+            as_bytes()
+            .windows(6)
+            .find(|w|
+                w[0] == b'S' &&
+                w[3] == b'E' &&
+                w[1].is_ascii_digit() &&
+                w[2].is_ascii_digit() &&
+                w[4].is_ascii_digit() &&
+                w[5].is_ascii_digit()
+            )
+            .map(|w| String::from_utf8_lossy(w).to_string()).unwrap_or_default();
+        debug!("{} - {}", series, found);
+        
+        if found != "" {
+            activity = activity
+                .details(format!("{series} {episode}"))
+                .state(format!("\"{title}\""));
+        }
+
+        if title.to_lowercase().contains(" - Youtube") {
+            assets = assets.large_image("https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1280px-YouTube_full-color_icon_%282017%29.svg.png");
+        }
+        else if title.to_lowercase().contains(" - Firefox") {
+            assets = assets.large_image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/3840px-Firefox_logo%2C_2019.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail");
+        }
+        else /* END Dar-Krusos */ if let Some(img_url) = &cover_art_url {
             trace!("Setting Discord large image asset (cover art): {}", img_url);
             assets = assets.large_image(img_url);
             if !activity_texts.large_text.is_empty() {
