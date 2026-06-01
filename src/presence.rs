@@ -830,14 +830,9 @@ impl Presence {
                 .details(format!("{series} {episode}"))
                 .state(format!("\"{title}\""));
         }
-
-        if title.to_lowercase().contains(" - Youtube") {
-            assets = assets.large_image("https://upload.wikimedia.org/wikipedia/commons/thumb/0/09/YouTube_full-color_icon_%282017%29.svg/1280px-YouTube_full-color_icon_%282017%29.svg.png");
-        }
-        else if title.to_lowercase().contains(" - Firefox") {
-            assets = assets.large_image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/a0/Firefox_logo%2C_2019.svg/3840px-Firefox_logo%2C_2019.svg.png?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=thumbnail");
-        }
-        else /* END Dar-Krusos */ if let Some(img_url) = &cover_art_url {
+        /* END Dar-Krusos */
+        
+        if let Some(img_url) = &cover_art_url {
             trace!("Setting Discord large image asset (cover art): {}", img_url);
             assets = assets.large_image(img_url);
             if !activity_texts.large_text.is_empty() {
@@ -856,6 +851,10 @@ impl Presence {
                     assets = assets.small_text(&activity_texts.small_text);
                 }
             }
+        // START Dar-Krusos
+        } else if url.to_lowercase().contains("https://www.youtube.com/watch?v=") {
+            assets = assets.large_image("https://images.icon-icons.com/1488/PNG/512/5295-youtube-i_102568.png");
+        // END Dar-Krusos
         } else {
             trace!(
                 "No cover art found, using player icon as large image: {}",
