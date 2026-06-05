@@ -19,6 +19,7 @@ use parking_lot::Mutex;
 use smol_str::SmolStr;
 use tokio::sync::{mpsc, Notify};
 use url::Url;
+use urlencoding::decode;
 
 use lofty::file::AudioFile as _;
 use lofty::prelude::TaggedFileExt as _;
@@ -801,7 +802,16 @@ impl Presence {
         let title = metadata.title().map(|title| title.to_string()).unwrap_or_else(|| "Unknown Title".into());
 
         let url = metadata.url().map(|url| url.to_string()).unwrap();
-        let decoded = url.replace("%20", " ");
+        let decoded = match decode(&url) {
+            Ok(decoded) => decoded,
+            Err(err) => {
+                warn!(
+                    "Failed to decode: {}", err
+                );
+                return Ok(());
+            }
+        };
+
         let (series, episode) = decoded
             .rsplit('/')
             .next()
@@ -811,6 +821,7 @@ impl Presence {
                     (&filename[..pos], &filename[pos + 1..])
                 })
             }).unwrap_or_default();
+        
         let found = decoded.
             as_bytes()
             .windows(6)
